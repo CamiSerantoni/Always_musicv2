@@ -50,17 +50,20 @@ export const todosLosEstudiantes = async () => {
 }
 
 // consulta de estudiante por rut
+
+
 export const consultaEstudiante = async (rut) => {
     let client
     try {
-        client = await pool.connect(); // Intenta obtener una conexión pool
-        const resultado = await client.query(`SELECT * FROM estudiantes WHERE rut=${rut} RETURNING *`)
+        client = await pool.connect();
+        const resultado = await client.query('SELECT * FROM estudiantes WHERE rut=$1', [rut])
         return resultado.rows
     } catch (error) {
-        return console.error('Error durante la conexión o la consulta:', error.stack);
-    }finally{
+        console.error('Error durante la conexión o la consulta:', error.stack, error.message, error.code);
+        throw error;
+    } finally {
         if(client){
-            client.release() // Nos aseguramos que el cliente se libere siempre
+            client.release()
         }
     }
 }
@@ -84,7 +87,7 @@ export const nuevoEstudiante = async ( estudiante ) => {
         const result  = await client.query(consulta)
         return result.rows
     } catch (error) {
-        return console.error('Error durante la conexión o la consulta:', error.stack);
+        return console.error('Error durante la conexión o la consulta:', error.stack, error.message, error.code);
     }finally{
         if(client){
             client.release() 
@@ -96,21 +99,22 @@ export const nuevoEstudiante = async ( estudiante ) => {
 export const editarEstudiante = async (estudiante) => {
     console.log('Salida de estudiante -->', estudiante )
     let client
-    const values = Object.values( estudiante )
+    const { nombre, rut, curso, nivel } = estudiante
     const consulta = {
-        text:"UPDATE estudiantes SET nombre = $1, rut = $2, curso = $3, nivel = $4 WHERE id = $1 RETURNING *",
-        values 
+        text:"UPDATE estudiantes SET nombre = $1, curso = $2, nivel = $3 WHERE rut = $4 RETURNING *",
+        values: [nombre, curso, nivel, rut]
     }
 
     try {
-        client = await pool.connect(); // Intenta obtener una conexión pool
+        client = await pool.connect();
         const result  = await client.query(consulta)
         return result.rows
     } catch (error) {
-        return console.error('Error durante la conexión o la consulta:', error.stack);
+        console.error('Error durante la conexión o la consulta:', error.stack, error.message, error.code);
+        throw error;
     }finally{
         if(client){
-            client.release() // Nos aseguramos que el cliente se libere siempre
+            client.release()
         }
     }
 }
@@ -118,15 +122,21 @@ export const editarEstudiante = async (estudiante) => {
 // DELETE 
 export const eliminarEstudiante= async( rut ) => {
     let client
+    const consulta = {
+        text: "DELETE FROM estudiantes WHERE rut=$1 RETURNING *",
+        values: [rut]
+    }
+
     try {
-        client = await pool.connect(); // Intenta obtener una conexión pool
-        const resultado = await client.query(`DELETE FROM estudiantes WHERE rut=${rut} RETURNING *`)
+        client = await pool.connect();
+        const resultado = await client.query(consulta)
         return resultado.rows
     } catch (error) {
-        return console.error('Error durante la conexión o la consulta:', error.stack);
+        console.error('Error durante la conexión o la consulta:', error.stack, error.message, error.code);
+        throw error;
     }finally{
         if(client){
-            client.release() 
+            client.release()
         }
     }
 }
